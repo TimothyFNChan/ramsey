@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import linprog
-numColors=3
-omega=3
+numColors=4
+omega=2
 
 #Because using 0,1,2 is easier than 0,0.5,1 for the values of vertices in each vertex cover
 def indexToCover(n):
@@ -78,6 +78,26 @@ def patternToIndex(pattern):
 ##
 ##    return ''.join(digits)
 
+##Adjacency matrix for the collision graph
+def collides(pattern1,pattern2):
+    for k in range(numColors):
+        pattern1Comp,pattern1Value=pattern1[k]
+        pattern2Comp,pattern2Value=pattern2[k]
+        if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
+            return 0
+    return 1
+collisionMatrix=np.empty((numPatterns,numPatterns))
+for i in range(numPatterns):
+    for j in range(i,numPatterns):
+        if collides(patterns[i],patterns[j]):
+            collisionMatrix[i][j]=1
+        else:
+            collisionMatrix[i][j]=0
+#symmetrise the adjacency matrix
+print collisionMatrix
+collisionMatrix=collisionMatrix+collisionMatrix.T - np.diag(collisionMatrix.diagonal())
+        
+
 ##CONSTRAINTS
 objective=np.array([0]*numPatterns)
 eqMatrix=np.array([[1]*numPatterns])
@@ -107,7 +127,3 @@ ineqVector=np.array([0]*ineqMatrix.shape[0])
 
 #Search for a feasible solution to an optimisation problem
 a=linprog(objective, ineqMatrix, ineqVector, eqMatrix, eqVector, bounds=(0,1))
-
-#write down the constraints in matrix form
-
-#scipy.optimise.linprog()
