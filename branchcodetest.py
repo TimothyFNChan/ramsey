@@ -20,12 +20,12 @@ testansseq=[False,False,True,False,False,False,True,False,True,False]
 
 nsteps=10
 
-conf=np.zeros((1,16),dtype=int)
+conf=np.zeros((9),dtype=int)
 iscontr=False
 vxseq=np.array([],dtype=int)
 onoffseq=np.array([],dtype=int)
 
 for step in range(nsteps):
-    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf[0],vxseq,onoffseq,bool(random.getrandbits(1)))
+    [conf,vxseq,onoffseq]=branch(testmatrix,conf,vxseq,onoffseq,bool(random.getrandbits(1)))
     if not len(conf):
         break

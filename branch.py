@@ -73,15 +73,24 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
         elif undecidedvertices:
             # there are some undecided vertices, so go to the max degree one and give it on/off label
             newvertex=undecidedvertices[-1]
-            newvertexsequence=np.append(vertexsequence,newvertex)
-            newvertexnhood=np.copy(collisionMatrix[newvertex,:])
             newconfiguration=np.copy(configuration)
-            newonoffsequence=np.append(onoffsequence,on)
-            # turn on next highest-degree vertex and turn off all vertices in its neighbourhood
-            newconfiguration[newvertex]=on
-            print "Turning vertex "+str(newvertex)+" on"
-            np.append(newonoffsequence,on)
-            newconfiguration[newvertexnhood==1]=off
+            newonoffsequence=np.copy(onoffsequence)
+            newvertexsequence=np.append(vertexsequence,newvertex)
+            
+            if collisionMatrix[newvertex,newvertex]==1:
+                # pattern is self-colliding so it must be off
+                newconfiguration[newvertex]=off
+                newonoffsequence=np.append(newonoffsequence,off)
+                print "Turning vertex "+str(newvertex)+" off. Cannot be on as it is self-colliding."
+
+            else:
+                # turn on next highest-degree vertex and turn off all vertices in its neighbourhood
+                newconfiguration[newvertex]=on
+                newvertexnhood=np.copy(collisionMatrix[newvertex,:])
+                newconfiguration[newvertexnhood==1]=off
+                newonoffsequence=np.append(newonoffsequence,on)
+                print "Turning vertex "+str(newvertex)+" on"
+                
             print "The new configuration to try is "+str(newconfiguration)        
             return [newconfiguration,newvertexsequence, newonoffsequence]
 
