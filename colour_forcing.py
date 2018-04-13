@@ -8,16 +8,25 @@ Created on Fri Apr 13 10:35:14 2018
 import networkx as nx
 
 
-def force_colour(pattern1,pattern2,colour):
+def isforcing(pattern1,pattern2,color):
     # input: 
     #       two patterns
-    #       colour
+    #       colour (int between 0 and numColors-1)
     # output:
-    #       True if patterns force colour
-    #       False if patterns don't force colour
+    #       True if patterns force colour AND don't collide
+    #       False if patterns collide OR don't force colour
     
-    # TIM CAN YOU WRITE THIS
-    return False
+    for k in range(color)+range(color+1,numColors):
+        pattern1Comp,pattern1Value=pattern1[k]
+        pattern2Comp,pattern2Value=pattern2[k]
+        if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
+            return 0
+    pattern1Comp,pattern1Value=pattern1[colour]
+    pattern2Comp,pattern2Value=pattern2[colour]
+    if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
+        return 1
+    
+    return 0
     
 def colour_forcing_sets(patterns, colour):
     # input: 
