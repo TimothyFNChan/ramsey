@@ -159,6 +159,52 @@ ineqMatrix=np.concatenate((ineqMatrix,constraints49),axis=0)
 ineqVector=np.concatenate((ineqVector,[c[numColors]]*np.shape(constraints49)[0]))
 
 ##Constraint 4.12
+import networkx as nx
+
+def isforcing(pattern1,pattern2,color):
+    # input: 
+    #       two patterns
+    #       colour (int between 0 and numColors-1)
+    # output:
+    #       True if patterns force colour AND don't collide
+    #       False if patterns collide OR don't force colour
+    
+    for k in range(color)+range(color+1,numColors):
+        pattern1Comp,pattern1Value=pattern1[k]
+        pattern2Comp,pattern2Value=pattern2[k]
+        if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
+            return 0
+    pattern1Comp,pattern1Value=pattern1[color]
+    pattern2Comp,pattern2Value=pattern2[color]
+    if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
+        return 1
+    
+    return 0
+    
+def colour_forcing_sets(patterns, colour):
+    # input: 
+    #       list of patterns
+    #       colour
+    # output:
+    #       list of maximal sets of patterns such that any two force the colour
+    #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
+    #       of array "patterns" any two of which force the colour
+    
+    
+    # Generate graph of forcing pattern pairs
+    npatterns=len(patterns)
+    edgelist=[]
+    for i in range(npatterns):
+        for j in range(i,npatterns):
+            if isforcing(patterns[i],patterns[j],colour):
+                edgelist.append((i,j))
+    G=nx.Graph()
+    G.add_edges_from(edgelist)
+    
+    # find maximal cliques
+    return list(nx.find_cliques(G))
+
+colour_forcing_sets(patterns,0)
 
 #Search for a feasible solution to an optimisation problem
 #minimise: objective^T * x subject to:  ineqMatrix_ub * x <= ineqVector, eqMatrix * x == eqVector
@@ -172,20 +218,20 @@ iscontr=False
 vxseq=np.array([],dtype=int)
 onoffseq=np.array([],dtype=int)
 
-for step in range(nsteps):
-    brancheqMatrix=np.copy(eqMatrix)
-    brancheqVector=np.copy(eqVector)
-    for index in range(numPatterns):
-        if conf[index]==2:
-            newConstraint=np.zeros(numPatterns)
-            newConstraint[index]=1
-            brancheqMatrix=np.concatenate((brancheqMatrix,np.array([newConstraint])),axis=0)
-            brancheqVector=np.concatenate((brancheqVector,[0]))
-    branchProg=linprog(objective, ineqMatrix, ineqVector, brancheqMatrix, brancheqVector, bounds=(0,1))
-    if branchProg.status==2:
-        iscontradiction=True
-    else:
-        iscontradiction=False
-    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,iscontradiction)
-    if not len(conf):
-        break
+##for step in range(nsteps):
+##    brancheqMatrix=np.copy(eqMatrix)
+##    brancheqVector=np.copy(eqVector)
+##    for index in range(numPatterns):
+##        if conf[index]==2:
+##            newConstraint=np.zeros(numPatterns)
+##            newConstraint[index]=1
+##            brancheqMatrix=np.concatenate((brancheqMatrix,np.array([newConstraint])),axis=0)
+##            brancheqVector=np.concatenate((brancheqVector,[0]))
+##    branchProg=linprog(objective, ineqMatrix, ineqVector, brancheqMatrix, brancheqVector, bounds=(0,1))
+##    if branchProg.status==2:
+##        iscontradiction=True
+##    else:
+##        iscontradiction=False
+##    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,iscontradiction)
+##    if not len(conf):
+##        break
