@@ -6,26 +6,27 @@ Created on Thu Mar 22 11:01:08 2018
 """
 import numpy as np
 from branch import branch
-import random 
 
-testmatrix=np.array([[0,1,0,0,1,0,0,0,1],[1,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,1,0],[1,0,1,0,0,1,0,1,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,1,1,0,1,0,0],[1,0,0,0,0,0,0,0,0]])       
-testconf=np.array([2,0,2,0,1,2,0,2,0])
-testonoffseq=np.array([1])
-testvxseq=np.array([4])
+collisionMatrix=np.load('collisionmatrix4paths.npy')
 
-testansseq=[False,False,True,False,False,False,True,False,True,False] 
-
+testansseq=np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 1.,
+       0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0.,
+       1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 0., 1., 0.,
+       1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1.,
+       0., 1., 0., 1., 0., 0., 1., 1., 0., 1., 0., 1., 0., 1., 0., 0., 1.,
+       1., 0., 0., 1., 1., 0., 1., 0., 1., 0., 1., 0., 0., 0., 1.])
+testansseq=testansseq.astype(bool)
 
 #generate random answers to iscontradiction to see behaviour
 
-nsteps=10
+nsteps=100
 
-conf=np.zeros((9),dtype=int)
+conf=np.zeros((256),dtype=int)
 iscontr=False
 vxseq=np.array([],dtype=int)
 onoffseq=np.array([],dtype=int)
 
 for step in range(nsteps):
-    [conf,vxseq,onoffseq]=branch(testmatrix,conf,vxseq,onoffseq,bool(random.getrandbits(1)))
+    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,testansseq[step])
     if not len(conf):
         break

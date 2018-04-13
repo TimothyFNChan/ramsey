@@ -87,7 +87,7 @@ def collides(pattern1,pattern2):
         if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
             return 0
     return 1
-collisionMatrix=np.empty((numPatterns,numPatterns))
+collisionMatrix=np.zeros((numPatterns,numPatterns),dtype=int)
 for i in range(numPatterns):
     for j in range(i,numPatterns):
         if collides(patterns[i],patterns[j]):
@@ -96,8 +96,7 @@ for i in range(numPatterns):
             collisionMatrix[i][j]=0
 #symmetrise the adjacency matrix
 collisionMatrix=np.copy(collisionMatrix+collisionMatrix.T - np.diag(collisionMatrix.diagonal()))
-print collisionMatrix
-        
+print collisionMatrix 
 
 ##CONSTRAINTS
 objective=np.array([0]*numPatterns)

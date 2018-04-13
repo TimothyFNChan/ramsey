@@ -54,7 +54,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
             newconfiguration=np.zeros(numvertices,dtype=int)
             for i in range(len(newvertexsequence)):
                 if newonoffsequence[i]==on:
-                    vertexnhood=np.copy(collisionMatrix[vertex,:])
+                    vertexnhood=np.copy(collisionMatrix[newvertexsequence[i],:])
                     newconfiguration[newvertexsequence[i]]=on
                     newconfiguration[vertexnhood==1]=off
                 elif newonoffsequence[i]==off:
