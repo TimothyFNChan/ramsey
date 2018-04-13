@@ -43,7 +43,7 @@ def colour_forcing_sets(patterns, colour):
     edgelist=[]
     for i in range(npatterns):
         for j in range(i,npatterns):
-            if force_colour(patterns[i],patterns[j],colour):
+            if isforcing(patterns[i],patterns[j],colour):
                 edgelist.append((i,j))
     
     G=nx.Graph()
