@@ -16,27 +16,31 @@ def isforcing(pattern1,pattern2,color):
     #       True if patterns force colour AND don't collide
     #       False if patterns collide OR don't force colour
     
-    for k in range(color)+range(color+1,numColors):
+    for k in range(color)+range(color+1,numColors): # numColors undefined!!!
         pattern1Comp,pattern1Value=pattern1[k]
         pattern2Comp,pattern2Value=pattern2[k]
         if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
             return 0
-    pattern1Comp,pattern1Value=pattern1[colour]
-    pattern2Comp,pattern2Value=pattern2[colour]
+    pattern1Comp,pattern1Value=pattern1[color]
+    pattern2Comp,pattern2Value=pattern2[color]
     if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
         return 1
     
     return 0
     
-def colour_forcing_sets(patterns, colour):
+def colour_forcing_sets(patterns, colour,fraction):
     # input: 
     #       list of patterns
     #       colour
+    #       fraction: will return maximal cliques of size at least fraction*cliquenumber
+    #                 e.g. if fraction=0 returns all maximal cliques
+    #                 if fraction=1 returns only maximum cliques
     # output:
     #       list of maximal sets of patterns such that any two force the colour
     #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
     #       of array "patterns" any two of which force the colour
     
+    # WARNING: Might have high-ish space complexity!
     
     # Generate graph of forcing pattern pairs
     npatterns=len(patterns)
@@ -49,5 +53,13 @@ def colour_forcing_sets(patterns, colour):
     G=nx.Graph()
     G.add_edges_from(edgelist)
     
+    # draw graph G
+    # nx.draw_networkx(G)
+    
+    cliqueslist=list(nx.find_cliques(G))
+    cliquenumber=nx.graph_clique_number(G,cliqueslist)
+    
+    trimmedcliqueslist=filter(lambda x: len(x)>=cliquenumber*fraction,cliqueslist)
+            
     # find maximal cliques
-    return list(nx.find_cliques(G))
+    return trimmedcliqueslist
