@@ -7,11 +7,11 @@ Created on Fri Apr 13 10:35:14 2018
 
 import networkx as nx
 
-
-def isforcing(pattern1,pattern2,color):
+def isforcing(pattern1,pattern2,color,numColors):
     # input: 
     #       two patterns
     #       colour (int between 0 and numColors-1)
+    #       number of colors in ramsey problem
     # output:
     #       True if patterns force colour AND don't collide
     #       False if patterns collide OR don't force colour
@@ -28,13 +28,14 @@ def isforcing(pattern1,pattern2,color):
     
     return 0
     
-def colour_forcing_sets(patterns, colour,fraction):
+def colour_forcing_sets(patterns, colour,fraction,numColors):
     # input: 
     #       list of patterns
     #       colour
     #       fraction: will return maximal cliques of size at least fraction*cliquenumber
     #                 e.g. if fraction=0 returns all maximal cliques
     #                 if fraction=1 returns only maximum cliques
+    #       numColors = number of colors in ramsey problem
     # output:
     #       list of maximal sets of patterns such that any two force the colour
     #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
@@ -47,7 +48,7 @@ def colour_forcing_sets(patterns, colour,fraction):
     edgelist=[]
     for i in range(npatterns):
         for j in range(i,npatterns):
-            if isforcing(patterns[i],patterns[j],colour):
+            if isforcing(patterns[i],patterns[j],colour,numColors):
                 edgelist.append((i,j))
     
     G=nx.Graph()
