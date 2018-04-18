@@ -8,8 +8,10 @@ from colour_forcing import colour_forcing_sets
 from branch import branch
 
 
-numColors=2
+numColors=3
 omega=2
+cliqueFraction=0
+
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
 numPatterns=numPatterns(omega,numColors)
 
@@ -65,26 +67,30 @@ ineqMatrix=np.concatenate((ineqMatrix,constraints48),axis=0)
 ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints48)[0])))
 
 ##Constraint 4.12
-##maximalCliques=[]
-##for k in range(numColors):
-##    maximalCliques.append(colour_forcing_sets(patterns,k,1,numColors))
-##
-##constraints412=np.empty((0,numPatterns))
-##for k in range(numColors):
-##    newConstraintBase=np.zeros(numPatterns,dtype=int)
-##    for index in range(numPatterns):
-##        pattern=patterns[index]
-##        if pattern[k][0]==1:
-##            newConstraintBase[index]=-1          
-##    for maximalClique in maximalCliques[k]:
-##        newConstraint=np.copy(newConstraintBase)
-##        for index in maximalClique:
-##            newConstraint[index]=newConstraint[index]+1
-##        newConstraint=np.array([newConstraint])
-##        constraints412=np.concatenate((constraints412,newConstraint),axis=0)
-#ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
-#ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 
+print 'up to 4.12'
+maximalCliques=[]
+for k in range(numColors):
+    maximalCliques.append(colour_forcing_sets(patterns,k,cliqueFraction,numColors))
+
+print 'up to constraints 4.12'
+constraints412=np.empty((0,numPatterns))
+for k in range(numColors):
+    newConstraintBase=np.zeros(numPatterns,dtype=int)
+    for index in range(numPatterns):
+        pattern=patterns[index]
+        if pattern[k][0]==1:
+            newConstraintBase[index]=-1          
+    for maximalClique in maximalCliques[k]:
+        newConstraint=np.copy(newConstraintBase)
+        for index in maximalClique:
+            newConstraint[index]=newConstraint[index]+1
+        newConstraint=np.array([newConstraint])
+        constraints412=np.concatenate((constraints412,newConstraint),axis=0)
+ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
+ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
+
+print 'end of constraints 4.12'
 ##Constraint 4.9 (With the strictness constraint)
 ##This adds one more variable, epsilon, to our polytope
         
@@ -116,7 +122,7 @@ ineqVector=np.concatenate((ineqVector,[c[numColors]]*np.shape(constraints49)[0])
 #Search for a feasible solution to an optimisation problem
 #minimise: objective^T * x subject to:  ineqMatrix_ub * x <= ineqVector, eqMatrix * x == eqVector
 
-nsteps=100
+nsteps=1000
 
 conf=np.zeros((numPatterns),dtype=int)
 iscontr=False
@@ -133,7 +139,7 @@ for step in range(nsteps):
             newConstraint[index]=1
             brancheqMatrix=np.concatenate((brancheqMatrix,np.array([newConstraint])),axis=0)
             brancheqVector=np.concatenate((brancheqVector,[0]))
-    #I have specified the interior-point method, this may not be optimal
+    #I have specified the interior-point method, this may not be optimal but it seems to behave better
     branchProg=linprog(objective, ineqMatrix, ineqVector, brancheqMatrix, brancheqVector, bounds=(0,1),method='interior-point')
 
     print ''
@@ -147,6 +153,7 @@ for step in range(nsteps):
     elif branchProg.status==0:
         print 'The maximum epsilon is ' + str(-branchProg.fun)
         print 'The involved inequality constraints are ' +str(binding)
+        print 'The computed solution is ' + str(branchProg.x)
         if branchProg.fun>=-1.0e-8:
             iscontradiction=True
         else:

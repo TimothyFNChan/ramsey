@@ -28,5 +28,12 @@ def generate_patterns(omega, numColors):
             colorQuo,colorRem=divmod(colorRem,singleColorNum(omega)**j)
             componentQuo,componentRem=divmod(colorQuo,3)
             pattern.append([componentQuo+1,indexToCover(componentRem)])
+
+        #set the placeholder cover values of vertices in component >=omega to be 1
+        #so that collisionMatrix is correctly calculated
+        for k in range(numColors):
+            if pattern[k][0]==omega:
+                    pattern[k][1]=1
+                    
         patterns.append(pattern)
     return patterns
