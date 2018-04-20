@@ -6,6 +6,8 @@ Created on Fri Apr 13 10:35:14 2018
 """
 
 import networkx as nx
+import random as rand
+import numpy as np
 
 def isforcing(pattern1,pattern2,color,numColors):
     # input: 
@@ -63,4 +65,77 @@ def colour_forcing_sets(patterns, colour,fraction,numColors):
     trimmedcliqueslist=filter(lambda x: len(x)>=cliquenumber*fraction,cliqueslist)
             
     # find maximal cliques
+    print 'There will be '+str(len(trimmedcliqueslist))+' 4.12 constraints for colour '+str(colour)    
     return trimmedcliqueslist
+
+def colour_forcing_sets_disjoint(patterns, colour, fraction,numColors):
+    # input: 
+    #       list of patterns
+    #       colour
+    #       fraction: will return maximal cliques of size at least fraction*cliquenumber
+    #                 e.g. if fraction=0 returns all maximal cliques
+    #                 if fraction=1 returns only maximum cliques
+    #       numColors = number of colors in ramsey problem
+    # output:
+    #       list of maximal sets of patterns such that any two force the colour
+    #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
+    #       of array "patterns" any two of which force the colour
+    
+    # Generate graph of forcing pattern pairs
+    npatterns=len(patterns)
+    edgelist=[]
+    for i in range(npatterns):
+        for j in range(i,npatterns):
+            if isforcing(patterns[i],patterns[j],colour,numColors):
+                edgelist.append((i,j))
+    
+    G=nx.Graph(edgelist)
+    initialcliquenumber=nx.graph_clique_number(G)
+
+    disjointcliqueslist=[]
+    
+    while nx.number_of_edges(G)>0:
+        cliques=nx.find_cliques(G)
+        cliquenumber=nx.graph_clique_number(G)
+        if cliquenumber<fraction*initialcliquenumber:
+            return disjointcliqueslist
+        else:
+            while True:
+                currentclique=cliques.next()
+                if len(currentclique)==cliquenumber:
+                    break
+            disjointcliqueslist.append(currentclique)
+            vertices=G.nodes()
+            G=G.subgraph([x for x in vertices if x not in currentclique])
+    print 'There will be '+str(len(disjointcliqueslist))+' 4.12 constraints'    
+    return disjointcliqueslist
+    
+            
+def colour_forcing_sets_random(patterns, colour, numCliques,numColors):
+    # input: 
+    #       list of patterns
+    #       colour
+    #       numCliques = number of cliques that will be returned
+    #       numColors = number of colors in ramsey problem
+    # output:
+    #       list of maximal sets of patterns such that any two force the colour
+    #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
+    #       of array "patterns" any two of which force the colour
+    
+    
+    # Generate graph of forcing pattern pairs
+    npatterns=len(patterns)
+    edgelist=[]
+    for i in range(npatterns):
+        for j in range(i,npatterns):
+            if isforcing(patterns[i],patterns[j],colour,numColors):
+                edgelist.append((i,j))
+    
+    G=nx.Graph(edgelist)
+    cliqueslist=list(nx.find_cliques(G))
+    
+    cliqueslist=[cliqueslist[i] for i in rand.sample(xrange(len(cliqueslist)),numCliques)]
+ 
+    print 'There will be '+str(len(cliqueslist))+' 4.12 constraints'    
+    return cliqueslist        
+    

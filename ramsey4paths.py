@@ -1,16 +1,21 @@
 import numpy as np
 import networkx as nx
+import sys
+import simplejson
 from scipy.optimize import linprog
 from collision import collision_matrix
 from generate_patterns import generate_patterns
 from gadgets import numPatterns
 from colour_forcing import colour_forcing_sets
+from colour_forcing import colour_forcing_sets_disjoint
+from colour_forcing import colour_forcing_sets_random
 from branch import branch
 
 
 numColors=3
-omega=2
+omega=3
 cliqueFraction=0
+numCliques=500
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
 numPatterns=numPatterns(omega,numColors)
@@ -68,29 +73,39 @@ ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints48)[0])))
 
 ##Constraint 4.12
 
-print 'up to 4.12'
 maximalCliques=[]
 for k in range(numColors):
-    maximalCliques.append(colour_forcing_sets(patterns,k,cliqueFraction,numColors))
+    maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
 
-print 'up to constraints 4.12'
+
 constraints412=np.empty((0,numPatterns))
+constr_file = open('constraint412.txt','w') 
+constr_file.write('[')
 for k in range(numColors):
-    newConstraintBase=np.zeros(numPatterns,dtype=int)
+    print '\nGenerating constraints 4.12 for colour '+str(k)
+    total=len(maximalCliques[k])
+    newConstraintBase=[0]*numPatterns
     for index in range(numPatterns):
         pattern=patterns[index]
         if pattern[k][0]==1:
             newConstraintBase[index]=-1          
-    for maximalClique in maximalCliques[k]:
-        newConstraint=np.copy(newConstraintBase)
+    for i,maximalClique in enumerate(maximalCliques[k]):
+        newConstraint=newConstraintBase[:]
         for index in maximalClique:
             newConstraint[index]=newConstraint[index]+1
-        newConstraint=np.array([newConstraint])
-        constraints412=np.concatenate((constraints412,newConstraint),axis=0)
+        sys.stdout.write('\r'+str(i)+'/'+str(total))
+        simplejson.dump(newConstraint,constr_file)
+        if i!=len(maximalCliques[k])-1 or k!=numColors-1:
+            constr_file.write(',')
+constr_file.write(']')
+constr_file.close()
+constr_file=open('constraint412.txt','r')
+constraints412=np.array(simplejson.load(constr_file))
 ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
 ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 
-print 'end of constraints 4.12'
+print '\nAll constraints 4.12 have been successfully generated'
+
 ##Constraint 4.9 (With the strictness constraint)
 ##This adds one more variable, epsilon, to our polytope
         
@@ -122,7 +137,7 @@ ineqVector=np.concatenate((ineqVector,[c[numColors]]*np.shape(constraints49)[0])
 #Search for a feasible solution to an optimisation problem
 #minimise: objective^T * x subject to:  ineqMatrix_ub * x <= ineqVector, eqMatrix * x == eqVector
 
-nsteps=1000
+nsteps=10000
 
 conf=np.zeros((numPatterns),dtype=int)
 iscontr=False
@@ -140,6 +155,7 @@ for step in range(nsteps):
             brancheqMatrix=np.concatenate((brancheqMatrix,np.array([newConstraint])),axis=0)
             brancheqVector=np.concatenate((brancheqVector,[0]))
     #I have specified the interior-point method, this may not be optimal but it seems to behave better
+    print 'Running optimisation script'
     branchProg=linprog(objective, ineqMatrix, ineqVector, brancheqMatrix, brancheqVector, bounds=(0,1),method='interior-point')
 
     print ''
