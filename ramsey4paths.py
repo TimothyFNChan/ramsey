@@ -12,23 +12,22 @@ from colour_forcing import colour_forcing_sets_random
 from branch import branch
 
 
-numColors=3
+numColors=2
 omega=2
-cliqueFraction=0
-numCliques=500
 minComponentSize=[np.nan,np.nan,1,1.0/2,1.0/3]
-cliquesMethod='simple' #'simple' or 'full', this defines the behaviour of the colour-forcing alg
+cliquesMethod='deterministic' #'simple', 'deterministic', 'disjoint', or 'random'
+cliqueFraction=1 #only relevant if cliquesMethod==deterministic or disjoint
+numCliques=100 #only relevant if cliquesMethod==random
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
 numPatterns=numPatterns(omega,numColors)
 
 # generate all principal patterns
 patterns=generate_patterns(omega,numColors)
-print(len(patterns))
+print 'There are ' + str(len(patterns)) + ' patterns.'
 
 # generate collision matrix
 collisionMatrix=collision_matrix(patterns,numColors)
-print collisionMatrix 
 
 ##CONSTRAINTS
 objective=np.array([0]*numPatterns,dtype=int)
@@ -74,50 +73,54 @@ ineqMatrix=np.concatenate((ineqMatrix,constraints48),axis=0)
 ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints48)[0])))
 
 ####Constraint 4.12
-if cliquesMethod=='full':
-    maximalCliques=[]
-    for k in range(numColors):
-        maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
+if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=='random':
+        maximalCliques=[]
+        if cliquesMethod=='deterministic':
+            for k in range(numColors):
+                maximalCliques.append(colour_forcing_sets(patterns,k,cliqueFraction,numColors))
+        elif cliquesMethod=='disjoint':
+            for k in range(numColors):
+                maximalCliques.append(colour_forcing_sets_disjoint(patterns,k,cliqueFraction,numColors))
+        elif cliquesMethod=='random':
+            for k in range(numColors):
+                maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
+                
+        constraints412=np.empty((0,numPatterns))
+        constr_file = open('constraint412.txt','w') 
+        constr_file.write('[')
+        for k in range(numColors):
+            print '\nGenerating constraints 4.12 for colour '+str(k)
+            total=len(maximalCliques[k])
+            newConstraintBase=[0]*numPatterns
+            for index in range(numPatterns):
+                pattern=patterns[index]
+                if pattern[k][0]==1:
+                    newConstraintBase[index]=-1          
+            for i,maximalClique in enumerate(maximalCliques[k]):
+                newConstraint=newConstraintBase[:]
+                for index in maximalClique:
+                    newConstraint[index]=newConstraint[index]+1
+                sys.stdout.write('\r'+str(i)+'/'+str(total))
+                simplejson.dump(newConstraint,constr_file)
+                if i!=len(maximalCliques[k])-1 or k!=numColors-1:
+                    constr_file.write(',')
+        constr_file.write(']')
+        constr_file.close()
+        constr_file=open('constraint412.txt','r')
+        constraints412=np.array(simplejson.load(constr_file))
+        ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
+        ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 
-
-    constraints412=np.empty((0,numPatterns))
-    constr_file = open('constraint412.txt','w') 
-    constr_file.write('[')
-    for k in range(numColors):
-        print '\nGenerating constraints 4.12 for colour '+str(k)
-        total=len(maximalCliques[k])
-        newConstraintBase=[0]*numPatterns
-        for index in range(numPatterns):
-            pattern=patterns[index]
-            if pattern[k][0]==1:
-                newConstraintBase[index]=-1          
-        for i,maximalClique in enumerate(maximalCliques[k]):
-            newConstraint=newConstraintBase[:]
-            for index in maximalClique:
-                newConstraint[index]=newConstraint[index]+1
-            sys.stdout.write('\r'+str(i)+'/'+str(total))
-            simplejson.dump(newConstraint,constr_file)
-            if i!=len(maximalCliques[k])-1 or k!=numColors-1:
-                constr_file.write(',')
-    constr_file.write(']')
-    constr_file.close()
-    constr_file=open('constraint412.txt','r')
-    constraints412=np.array(simplejson.load(constr_file))
-    ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
-    ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
-
-    print '\nAll constraints 4.12 have been successfully generated'
+        print '\nAll constraints 4.12 have been successfully generated'
+        
 elif cliquesMethod=='simple':
     #Constraint 4.12 simplified
     def naturalForcing(pattern,k):
-        colorList=range(numColors)
-        colorList.remove(k)
-        for k2 in colorList:
+        for k2 in range(k)+range(k+1,numColors):
             if pattern[k2][0]==omega or pattern[k2][1]!=0:
-                print str(pattern) + "is not forcing"
                 return False
-        print str(pattern) + "is forcing"
         return True
+    
     constraints412=np.empty((0,numPatterns))
     constr_file = open('constraint412.txt','w') 
     constr_file.write('[')
@@ -127,12 +130,10 @@ elif cliquesMethod=='simple':
             pattern=patterns[index]
             if pattern[k][0]==1:
                 newConstraintBase[index]=-1
-        print newConstraintBase
         for index in range(numPatterns):
             pattern=patterns[index]
             if naturalForcing(pattern,k):
                 newConstraintBase[index]=newConstraintBase[index]+1
-        print newConstraintBase
         newConstraint=np.array([newConstraintBase])
         constraints412=np.concatenate((constraints412,newConstraint),axis=0)
     ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
