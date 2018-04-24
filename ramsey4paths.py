@@ -13,9 +13,11 @@ from branch import branch
 
 
 numColors=3
-omega=3
+omega=2
 cliqueFraction=0
 numCliques=500
+minComponentSize=[np.nan,np.nan,1,1.0/2,1.0/3]
+cliquesMethod='simple' #'simple' or 'full', this defines the behaviour of the colour-forcing alg
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
 numPatterns=numPatterns(omega,numColors)
@@ -71,40 +73,86 @@ for i in range(numColors):
 ineqMatrix=np.concatenate((ineqMatrix,constraints48),axis=0)
 ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints48)[0])))
 
-##Constraint 4.12
+####Constraint 4.12
+if cliquesMethod=='full':
+    maximalCliques=[]
+    for k in range(numColors):
+        maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
 
-maximalCliques=[]
-for k in range(numColors):
-    maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
 
+    constraints412=np.empty((0,numPatterns))
+    constr_file = open('constraint412.txt','w') 
+    constr_file.write('[')
+    for k in range(numColors):
+        print '\nGenerating constraints 4.12 for colour '+str(k)
+        total=len(maximalCliques[k])
+        newConstraintBase=[0]*numPatterns
+        for index in range(numPatterns):
+            pattern=patterns[index]
+            if pattern[k][0]==1:
+                newConstraintBase[index]=-1          
+        for i,maximalClique in enumerate(maximalCliques[k]):
+            newConstraint=newConstraintBase[:]
+            for index in maximalClique:
+                newConstraint[index]=newConstraint[index]+1
+            sys.stdout.write('\r'+str(i)+'/'+str(total))
+            simplejson.dump(newConstraint,constr_file)
+            if i!=len(maximalCliques[k])-1 or k!=numColors-1:
+                constr_file.write(',')
+    constr_file.write(']')
+    constr_file.close()
+    constr_file=open('constraint412.txt','r')
+    constraints412=np.array(simplejson.load(constr_file))
+    ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
+    ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 
-constraints412=np.empty((0,numPatterns))
-constr_file = open('constraint412.txt','w') 
-constr_file.write('[')
-for k in range(numColors):
-    print '\nGenerating constraints 4.12 for colour '+str(k)
-    total=len(maximalCliques[k])
-    newConstraintBase=[0]*numPatterns
-    for index in range(numPatterns):
-        pattern=patterns[index]
-        if pattern[k][0]==1:
-            newConstraintBase[index]=-1          
-    for i,maximalClique in enumerate(maximalCliques[k]):
-        newConstraint=newConstraintBase[:]
-        for index in maximalClique:
-            newConstraint[index]=newConstraint[index]+1
-        sys.stdout.write('\r'+str(i)+'/'+str(total))
-        simplejson.dump(newConstraint,constr_file)
-        if i!=len(maximalCliques[k])-1 or k!=numColors-1:
-            constr_file.write(',')
-constr_file.write(']')
-constr_file.close()
-constr_file=open('constraint412.txt','r')
-constraints412=np.array(simplejson.load(constr_file))
-ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
-ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
+    print '\nAll constraints 4.12 have been successfully generated'
+elif cliquesMethod=='simple':
+    #Constraint 4.12 simplified
+    def naturalForcing(pattern,k):
+        colorList=range(numColors)
+        colorList.remove(k)
+        for k2 in colorList:
+            if pattern[k2][0]==omega or pattern[k2][1]!=0:
+                print str(pattern) + "is not forcing"
+                return False
+        print str(pattern) + "is forcing"
+        return True
+    constraints412=np.empty((0,numPatterns))
+    constr_file = open('constraint412.txt','w') 
+    constr_file.write('[')
+    for k in range(numColors):
+        newConstraintBase=[0]*numPatterns
+        for index in range(numPatterns):
+            pattern=patterns[index]
+            if pattern[k][0]==1:
+                newConstraintBase[index]=-1
+        print newConstraintBase
+        for index in range(numPatterns):
+            pattern=patterns[index]
+            if naturalForcing(pattern,k):
+                newConstraintBase[index]=newConstraintBase[index]+1
+        print newConstraintBase
+        newConstraint=np.array([newConstraintBase])
+        constraints412=np.concatenate((constraints412,newConstraint),axis=0)
+    ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
+    ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
+else:
+    print 'Unexpected cliquesMethod'
+    quit
 
-print '\nAll constraints 4.12 have been successfully generated'
+##Constraint 4.13 (Minimum component size)
+constraints413=np.empty((0,numPatterns))
+newConstraint=[0]*numPatterns
+for index in range(numPatterns):
+    pattern=patterns[index]
+    if pattern[0][0]==1:
+        newConstraint[index]=-1
+newConstraint=np.array([newConstraint])
+constraints413=np.concatenate((constraints413,newConstraint),axis=0)
+
+ineqMatrix=np.concatenate((ineqMatrix,constraints413),axis=0)
+ineqVector=np.concatenate((ineqVector,[-minComponentSize[numColors]]))
 
 ##Constraint 4.9 (With the strictness constraint)
 ##This adds one more variable, epsilon, to our polytope
@@ -161,7 +209,7 @@ for step in range(nsteps):
     print ''
     binding=[]
     for i in range(numIneqConstraints):
-        if branchProg.slack[i]<=0:
+        if branchProg.slack[i]<=1.0e-10:
             binding.append(i)
     if branchProg.status==2:
         print 'Problem seems infeasible'
@@ -170,12 +218,17 @@ for step in range(nsteps):
         print 'The maximum epsilon is ' + str(-branchProg.fun)
         print 'The involved inequality constraints are ' +str(binding)
         print 'The computed solution is ' + str(branchProg.x)
+        if np.sum(branchProg.x[:12])<1:
+            print 'Minimum component size flag (only for numColors=2)'
+            print 'Expected: 0, got: ' + str(np.sum(branchProg.x[3]+branchProg.x[7]+branchProg.x[11]+branchProg.x[15]))
         if branchProg.fun>=-1.0e-8:
             iscontradiction=True
+            print 'Solution failed the strictness conditions'
         else:
             iscontradiction=False
     else:
-        print 'Unexpected branchProg.status' 
+        print 'Unexpected branchProg.status'
+        quit
     [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,iscontradiction)
     if not len(conf):
         break

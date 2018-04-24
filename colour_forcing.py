@@ -23,12 +23,15 @@ def isforcing(pattern1,pattern2,color,numColors):
         pattern2Comp,pattern2Value=pattern2[k]
         if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
             return 0
+    #complex version that does not add edges between colliding vertices to save time
     pattern1Comp,pattern1Value=pattern1[color]
     pattern2Comp,pattern2Value=pattern2[color]
     if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
         return 1
-    
     return 0
+
+    #simple version that matches the definition given in the paper
+    #return 1
     
 def colour_forcing_sets(patterns, colour,fraction,numColors):
     # input: 
@@ -134,7 +137,7 @@ def colour_forcing_sets_random(patterns, colour, numCliques,numColors):
     G=nx.Graph(edgelist)
     cliqueslist=list(nx.find_cliques(G))
     
-    cliqueslist=[cliqueslist[i] for i in rand.sample(xrange(len(cliqueslist)),numCliques)]
+    cliqueslist=[cliqueslist[i] for i in rand.sample(xrange(len(cliqueslist)),min(numCliques,len(cliqueslist)))]
  
     print 'There will be '+str(len(cliqueslist))+' 4.12 constraints'    
     return cliqueslist        
