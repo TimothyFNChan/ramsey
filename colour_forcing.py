@@ -23,6 +23,10 @@ def isforcing(pattern1,pattern2,color,numColors):
         pattern2Comp,pattern2Value=pattern2[k]
         if (pattern1Comp==pattern2Comp) and (pattern1Value+pattern2Value>=1):
             return 0
+    #simple version that matches the definition given in the paper
+    #MAKE SURE THIS IS COMMENTED IF YOU WANT TO SAVE TIME
+    #return 1
+
     #complex version that does not add edges between colliding vertices to save time
     pattern1Comp,pattern1Value=pattern1[color]
     pattern2Comp,pattern2Value=pattern2[color]
@@ -30,8 +34,7 @@ def isforcing(pattern1,pattern2,color,numColors):
         return 1
     return 0
 
-    #simple version that matches the definition given in the paper
-    #return 1
+
     
 def colour_forcing_sets(patterns, colour,fraction,numColors):
     # input: 
