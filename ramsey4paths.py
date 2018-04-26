@@ -19,18 +19,21 @@ out=open('output'+datetime.now().strftime('%Y-%m-%d-%H-%M')+'.txt','w')
 
 #Confirmed working: (times benchmarked on i7-4650u)
 #2 colors
-#2 colors, omega=2, strong deterministic cliqueFraction 0.8, minSize 0.74 (2600s)
-#2 colors, omega=2, strong random numCliques 100, minSize 0.74 (45s)
+#3 colors, omega=2, strong deterministic cliqueFraction 0.8, minSize 0.74 (2600s)
+#3 colors, omega=2, strong random numCliques 100, minSize 0.74 (45s)
+
+#Failed:
+#4 colors, omega=2, strong random numCliques=400, minSize 0.8 (1000s)
 
 #Not working:
 #Same as above but with the simplified colour-forcing definition
 
-numColors=3
+numColors=4
 omega=2
-minComponentSize=[np.nan,np.nan,1,0.74,0.79]
+minComponentSize=[np.nan,np.nan,1,0.74,0.8]
 cliquesMethod='random' #'simple', 'deterministic', 'disjoint', or 'random'
-cliqueFraction=0.8 #only relevant if cliquesMethod==deterministic or disjoint
-numCliques=50 #only relevant if cliquesMethod==random
+cliqueFraction=1 #only relevant if cliquesMethod==deterministic or disjoint
+numCliques=400 #only relevant if cliquesMethod==random
 out.write('Running ramsey path problem for '+str(numColors)+' colours with omega = '+str(omega)+'\nCliques method is '+cliquesMethod+'\n')
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
@@ -232,15 +235,19 @@ for step in range(nsteps):
     for i in range(numIneqConstraints):
         if branchProg.slack[i]<=1.0e-10:
             binding.append(i)
-            bindingCounter[i]+=1
+    print 'The involved inequality constraints are ' +str(binding)
     if branchProg.status==2:
         print 'Problem seems infeasible'
+        for element in binding:
+            bindingCounter[element]+=1
         out.write('Problem seems infeasible\n')
         iscontradiction=True
     elif branchProg.status==0:
         out.write('The maximum epsilon is ' + str(-branchProg.fun)+'\nThe involved inequality constraints are ' +str(binding)+'\nThe computed solution is ' + str(branchProg.x)+'\n')
         if branchProg.fun>=-1.0e-8:
             iscontradiction=True
+            for element in binding:
+                bindingCounter[element]+=1
             print 'Solution failed the strictness conditions'
             out.write('Solution failed the strictness conditions\n')
         else:
