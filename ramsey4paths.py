@@ -17,16 +17,20 @@ starttime=time.time()
 
 out=open('output'+datetime.now().strftime('%Y-%m-%d-%H-%M')+'.txt','w')
 
-#Confirmed working:
+#Confirmed working: (times benchmarked on i7-4650u)
 #2 colors
-#2 colors, omega=2, strong deterministic cliqueFraction 0.8, minSize 0.74
+#2 colors, omega=2, strong deterministic cliqueFraction 0.8, minSize 0.74 (2600s)
+#2 colors, omega=2, strong random numCliques 100, minSize 0.74 (45s)
+
+#Not working:
+#Same as above but with the simplified colour-forcing definition
 
 numColors=3
 omega=2
-minComponentSize=[np.nan,np.nan,1,0.74,1.0/3]
-cliquesMethod='deterministic' #'simple', 'deterministic', 'disjoint', or 'random'
-cliqueFraction=0 #only relevant if cliquesMethod==deterministic or disjoint
-numCliques=100 #only relevant if cliquesMethod==random
+minComponentSize=[np.nan,np.nan,1,0.74,0.79]
+cliquesMethod='random' #'simple', 'deterministic', 'disjoint', or 'random'
+cliqueFraction=0.8 #only relevant if cliquesMethod==deterministic or disjoint
+numCliques=50 #only relevant if cliquesMethod==random
 out.write('Running ramsey path problem for '+str(numColors)+' colours with omega = '+str(omega)+'\nCliques method is '+cliquesMethod+'\n')
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
@@ -89,7 +93,28 @@ def naturalForcing(pattern,k):
         if pattern[k2][0]==omega or pattern[k2][1]!=0:
             return False
     return True
-if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=='random':
+
+constraints412=np.empty((0,numPatterns))
+for k in range(numColors):
+    newConstraintBase=[0]*numPatterns
+    for index in range(numPatterns):
+        pattern=patterns[index]
+        if pattern[k][0]==1:
+            newConstraintBase[index]=-1
+    print newConstraintBase
+    for index in range(numPatterns):
+        pattern=patterns[index]
+        if naturalForcing(pattern,k):
+            newConstraintBase[index]=newConstraintBase[index]+1
+    newConstraint=np.array([newConstraintBase])
+    constraints412=np.concatenate((constraints412,newConstraint),axis=0)
+ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
+ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
+
+if cliquesMethod=='simple':
+    pass
+
+elif cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=='random':
     maximalCliques=[]
     if cliquesMethod=='deterministic':
         for k in range(numColors):
@@ -132,26 +157,6 @@ if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=
     out.write('All constraints 4.12 have been successfully generated\n')
         
     #Constraint 4.12 simplified
- 
-    constraints412=np.empty((0,numPatterns))
-    for k in range(numColors):
-        newConstraintBase=[0]*numPatterns
-        for index in range(numPatterns):
-            pattern=patterns[index]
-            if pattern[k][0]==1:
-                newConstraintBase[index]=-1
-                print patterns[index]
-        print newConstraintBase
-        for index in range(numPatterns):
-            pattern=patterns[index]
-            if naturalForcing(pattern,k):
-                newConstraintBase[index]=newConstraintBase[index]+1
-                print patterns[index]
-        print newConstraintBase
-        newConstraint=np.array([newConstraintBase])
-        constraints412=np.concatenate((constraints412,newConstraint),axis=0)
-    ineqMatrix=np.concatenate((ineqMatrix,constraints412),axis=0)
-    ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 else:
     print 'Unexpected cliquesMethod'
     out.write('Unexpected cliquesMethod\n')
@@ -209,6 +214,7 @@ vxseq=np.array([],dtype=int)
 onoffseq=np.array([],dtype=int)
 
 numIneqConstraints=ineqMatrix.shape[0]
+bindingCounter=[0]*numIneqConstraints
 for step in range(nsteps):
     brancheqMatrix=np.copy(eqMatrix)
     brancheqVector=np.copy(eqVector)
@@ -226,19 +232,13 @@ for step in range(nsteps):
     for i in range(numIneqConstraints):
         if branchProg.slack[i]<=1.0e-10:
             binding.append(i)
+            bindingCounter[i]+=1
     if branchProg.status==2:
         print 'Problem seems infeasible'
         out.write('Problem seems infeasible\n')
         iscontradiction=True
     elif branchProg.status==0:
-        print 'The maximum epsilon is ' + str(-branchProg.fun)
-        print 'The involved inequality constraints are ' +str(binding)
-        print 'The computed solution is ' + str(branchProg.x)
         out.write('The maximum epsilon is ' + str(-branchProg.fun)+'\nThe involved inequality constraints are ' +str(binding)+'\nThe computed solution is ' + str(branchProg.x)+'\n')
-        if np.sum(branchProg.x[:12])<1:
-            print 'Minimum component size flag (only for numColors=2)'
-            print 'Expected: 0, got: ' + str(np.sum(branchProg.x[3]+branchProg.x[7]+branchProg.x[11]+branchProg.x[15]))
-            out.write('Minimum component size flag (only for numColors=2)\nExpected: 0, got: ' + str(np.sum(branchProg.x[3]+branchProg.x[7]+branchProg.x[11]+branchProg.x[15]))+'\n')
         if branchProg.fun>=-1.0e-8:
             iscontradiction=True
             print 'Solution failed the strictness conditions'
