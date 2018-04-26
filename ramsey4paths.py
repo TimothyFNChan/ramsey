@@ -1,7 +1,9 @@
 import numpy as np
 import networkx as nx
 import sys
+import time
 import simplejson
+from datetime import datetime
 from scipy.optimize import linprog
 from collision import collision_matrix
 from generate_patterns import generate_patterns
@@ -10,6 +12,10 @@ from colour_forcing import colour_forcing_sets
 from colour_forcing import colour_forcing_sets_disjoint
 from colour_forcing import colour_forcing_sets_random
 from branch import branch
+
+starttime=time.time()
+
+out=open('output'+datetime.now().strftime('%Y-%m-%d-%H-%M')+'.txt','w')
 
 #Confirmed working:
 #2 colors
@@ -21,6 +27,7 @@ minComponentSize=[np.nan,np.nan,1,0.74,1.0/3]
 cliquesMethod='deterministic' #'simple', 'deterministic', 'disjoint', or 'random'
 cliqueFraction=0 #only relevant if cliquesMethod==deterministic or disjoint
 numCliques=100 #only relevant if cliquesMethod==random
+out.write('Running ramsey path problem for '+str(numColors)+' colours with omega = '+str(omega)+'\nCliques method is '+cliquesMethod+'\n')
 
 c=[0,1.0,2.0/3,2.0/4,2.0/5] #the conjectured bound for each k
 numPatterns=numPatterns(omega,numColors)
@@ -28,6 +35,7 @@ numPatterns=numPatterns(omega,numColors)
 # generate all principal patterns
 patterns=generate_patterns(omega,numColors)
 print 'There are ' + str(len(patterns)) + ' patterns.'
+out.write('There are ' + str(len(patterns)) + ' patterns.\n')
 
 # generate collision matrix
 collisionMatrix=collision_matrix(patterns,numColors)
@@ -85,19 +93,20 @@ if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=
     maximalCliques=[]
     if cliquesMethod=='deterministic':
         for k in range(numColors):
-            maximalCliques.append(colour_forcing_sets(patterns,k,cliqueFraction,numColors))
+            maximalCliques.append(colour_forcing_sets(patterns,k,cliqueFraction,numColors,out))
     elif cliquesMethod=='disjoint':
         for k in range(numColors):
-            maximalCliques.append(colour_forcing_sets_disjoint(patterns,k,cliqueFraction,numColors))
+            maximalCliques.append(colour_forcing_sets_disjoint(patterns,k,cliqueFraction,numColors,out))
     elif cliquesMethod=='random':
         for k in range(numColors):
-            maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors))
+            maximalCliques.append(colour_forcing_sets_random(patterns,k,numCliques,numColors,out))
             
     constraints412=np.empty((0,numPatterns))
     constr_file = open('constraint412.txt','w') 
     constr_file.write('[')
     for k in range(numColors):
         print '\nGenerating constraints 4.12 for colour '+str(k)
+        out.write('\nGenerating constraints 4.12 for colour '+str(k)+'\n')
         total=len(maximalCliques[k])
         newConstraintBase=[0]*numPatterns
         for index in range(numPatterns):
@@ -120,6 +129,7 @@ if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=
     ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 
     print '\nAll constraints 4.12 have been successfully generated'
+    out.write('All constraints 4.12 have been successfully generated\n')
         
     #Constraint 4.12 simplified
  
@@ -144,6 +154,7 @@ if cliquesMethod=='deterministic' or cliquesMethod=='disjoint' or cliquesMethod=
     ineqVector=np.concatenate((ineqVector,np.zeros(np.shape(constraints412)[0])))
 else:
     print 'Unexpected cliquesMethod'
+    out.write('Unexpected cliquesMethod\n')
     quit
 
 ####Constraint 4.13 (Minimum component size)
@@ -217,22 +228,32 @@ for step in range(nsteps):
             binding.append(i)
     if branchProg.status==2:
         print 'Problem seems infeasible'
+        out.write('Problem seems infeasible\n')
         iscontradiction=True
     elif branchProg.status==0:
         print 'The maximum epsilon is ' + str(-branchProg.fun)
         print 'The involved inequality constraints are ' +str(binding)
         print 'The computed solution is ' + str(branchProg.x)
+        out.write('The maximum epsilon is ' + str(-branchProg.fun)+'\nThe involved inequality constraints are ' +str(binding)+'\nThe computed solution is ' + str(branchProg.x)+'\n')
         if np.sum(branchProg.x[:12])<1:
             print 'Minimum component size flag (only for numColors=2)'
             print 'Expected: 0, got: ' + str(np.sum(branchProg.x[3]+branchProg.x[7]+branchProg.x[11]+branchProg.x[15]))
+            out.write('Minimum component size flag (only for numColors=2)\nExpected: 0, got: ' + str(np.sum(branchProg.x[3]+branchProg.x[7]+branchProg.x[11]+branchProg.x[15]))+'\n')
         if branchProg.fun>=-1.0e-8:
             iscontradiction=True
             print 'Solution failed the strictness conditions'
+            out.write('Solution failed the strictness conditions\n')
         else:
             iscontradiction=False
     else:
         print 'Unexpected branchProg.status'
+        out.write('Unexpected branchProg.status\n')
         quit
-    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,iscontradiction)
+    [conf,vxseq,onoffseq]=branch(collisionMatrix,conf,vxseq,onoffseq,iscontradiction,out)
     if not len(conf):
         break
+
+
+print '\n-------- %s seconds ---------' % (time.time()-starttime)
+out.write('\n-------- %s seconds ---------' % (time.time()-starttime))
+out.close()

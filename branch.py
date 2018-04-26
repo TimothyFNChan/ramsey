@@ -1,11 +1,12 @@
 import numpy as np
 
-def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscontradiction):
+def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscontradiction,outputfile):
     # input: adjacency matrix of collision graph for patterns
     #       configuration = configuration of on/offs for all patterns that was just checked for contradiction
     #       vertexsequence = vertices whose turning on/off in sequence yielded the contradiction
     #       onoffsequence = on/off status corresponding to vertexsequence
     #       iscontradiction = result of linear programming check on corresponding constraints
+    #       outputfile = write all output there
     # output:
     #       list of three lists in this order:
     #       newconfiguration = to be tried next
@@ -16,8 +17,10 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
     
     if iscontradiction:
         print "Configuration "+str(configuration)+" returned contradiction."
+        outputfile.write("Configuration "+str(configuration)+" returned contradiction.\n")
     elif not iscontradiction:
         print "Configuration "+str(configuration)+" did not return contradiction."
+        outputfile.write("Configuration "+str(configuration)+" did not return contradiction.\n")
         
     [rows,cols]=np.shape(collisionMatrix)
     numvertices=rows
@@ -32,6 +35,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
     undecidedvertices=[vertex for vertex in verticesincr if vertex in rangenum[configuration==undecided]]
 
     print "Undecided vertices are "+str(undecidedvertices)
+    outputfile.write("Undecided vertices are "+str(undecidedvertices)+'\n')
 
     if iscontradiction:
         # if this configuration led to contradiction
@@ -41,6 +45,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
             # there are no vertices that are on
             # this is the end of the branching
             print "All vertices in the configuration are off or undecided, and this has given a contradiction. This is the end of the branching. :)"
+            outputfile.write("All vertices in the configuration are off or undecided, and this has given a contradiction. This is the end of the branching. :)\n")        
             return [np.array([]),np.array(None),np.array(None)]
         else:
             # otherwise may safely roll back to last vx which was turned on
@@ -49,6 +54,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
             newonoffsequence=np.copy(onoffsequence[:lastonvxindex+1])
             newonoffsequence[-1]=off
             print "Rolling back and turning vertex "+str(newvertexsequence[-1])+" off"
+            outputfile.write("Rolling back and turning vertex "+str(newvertexsequence[-1])+" off\n")
             
             # now generate the configuration given by this vertex sequence
             newconfiguration=np.zeros(numvertices,dtype=int)
@@ -59,7 +65,8 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
                     newconfiguration[vertexnhood==1]=off
                 elif newonoffsequence[i]==off:
                     newconfiguration[newvertexsequence[i]]=off
-            print "The new configuration to try is "+str(newconfiguration)        
+            print "The new configuration to try is "+str(newconfiguration)  
+            outputfile.write("The new configuration to try is "+str(newconfiguration)+'\n')
             return [newconfiguration,newvertexsequence, newonoffsequence]
         
     elif not iscontradiction:
@@ -68,6 +75,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
         if not undecidedvertices:
             # if there are no undecided vertices left and no contradiction, these constraints are not enough
             print "All vertices in input configuration have been fixed to on/off and still no contradiction occurred. :("
+            outputfile.write("All vertices in input configuration have been fixed to on/off and still no contradiction occurred. :(\n")
             return [np.array([]),np.array(None),np.array(None)]
         
         elif undecidedvertices:
@@ -82,6 +90,7 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
                 newconfiguration[newvertex]=off
                 newonoffsequence=np.append(newonoffsequence,off)
                 print "Turning vertex "+str(newvertex)+" off. Cannot be on as it is self-colliding."
+                outputfile.write("Turning vertex "+str(newvertex)+" off. Cannot be on as it is self-colliding.\n")
 
             else:
                 # turn on next highest-degree vertex and turn off all vertices in its neighbourhood
@@ -90,8 +99,10 @@ def branch(collisionMatrix, configuration, vertexsequence, onoffsequence, iscont
                 newconfiguration[newvertexnhood==1]=off
                 newonoffsequence=np.append(newonoffsequence,on)
                 print "Turning vertex "+str(newvertex)+" on"
+                outputfile.write("Turning vertex "+str(newvertex)+" on\n")
                 
-            print "The new configuration to try is "+str(newconfiguration)        
+            print "The new configuration to try is "+str(newconfiguration) 
+            outputfile.write("The new configuration to try is "+str(newconfiguration) +'\n')
             return [newconfiguration,newvertexsequence, newonoffsequence]
 
  

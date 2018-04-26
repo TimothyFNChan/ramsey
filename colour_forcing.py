@@ -36,7 +36,7 @@ def isforcing(pattern1,pattern2,color,numColors):
 
 
     
-def colour_forcing_sets(patterns, colour,fraction,numColors):
+def colour_forcing_sets(patterns, colour,fraction,numColors,outputfile):
     # input: 
     #       list of patterns
     #       colour
@@ -44,6 +44,7 @@ def colour_forcing_sets(patterns, colour,fraction,numColors):
     #                 e.g. if fraction=0 returns all maximal cliques
     #                 if fraction=1 returns only maximum cliques
     #       numColors = number of colors in ramsey problem
+    #       outputfile = write all output there
     # output:
     #       list of maximal sets of patterns such that any two force the colour
     #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
@@ -71,10 +72,11 @@ def colour_forcing_sets(patterns, colour,fraction,numColors):
     trimmedcliqueslist=filter(lambda x: len(x)>=cliquenumber*fraction,cliqueslist)
             
     # find maximal cliques
-    print 'There will be '+str(len(trimmedcliqueslist))+' 4.12 constraints for colour '+str(colour)    
+    print 'There will be '+str(len(trimmedcliqueslist))+' 4.12 constraints for colour '+str(colour)  
+    outputfile.write('There will be '+str(len(trimmedcliqueslist))+' 4.12 constraints for colour '+str(colour)  +'\n')
     return trimmedcliqueslist
 
-def colour_forcing_sets_disjoint(patterns, colour, fraction,numColors):
+def colour_forcing_sets_disjoint(patterns, colour, fraction,numColors,outputfile):
     # input: 
     #       list of patterns
     #       colour
@@ -82,6 +84,7 @@ def colour_forcing_sets_disjoint(patterns, colour, fraction,numColors):
     #                 e.g. if fraction=0 returns all maximal cliques
     #                 if fraction=1 returns only maximum cliques
     #       numColors = number of colors in ramsey problem
+    #       outputfile = write all output there
     # output:
     #       list of maximal sets of patterns such that any two force the colour
     #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
@@ -113,16 +116,18 @@ def colour_forcing_sets_disjoint(patterns, colour, fraction,numColors):
             disjointcliqueslist.append(currentclique)
             vertices=G.nodes()
             G=G.subgraph([x for x in vertices if x not in currentclique])
-    print 'There will be '+str(len(disjointcliqueslist))+' 4.12 constraints'    
+    print 'There will be '+str(len(disjointcliqueslist))+' 4.12 constraints' 
+    outputfile.write('There will be '+str(len(disjointcliqueslist))+' 4.12 constraints\n')
     return disjointcliqueslist
     
             
-def colour_forcing_sets_random(patterns, colour, numCliques,numColors):
+def colour_forcing_sets_random(patterns, colour, numCliques,numColors,outputfile):
     # input: 
     #       list of patterns
     #       colour
     #       numCliques = number of cliques that will be returned
     #       numColors = number of colors in ramsey problem
+    #       outputfile = write all output there    
     # output:
     #       list of maximal sets of patterns such that any two force the colour
     #       list is of the form [l_1,l_2,...] where l_i is a list of indices 
@@ -142,6 +147,7 @@ def colour_forcing_sets_random(patterns, colour, numCliques,numColors):
     
     cliqueslist=[cliqueslist[i] for i in rand.sample(xrange(len(cliqueslist)),min(numCliques,len(cliqueslist)))]
  
-    print 'There will be '+str(len(cliqueslist))+' 4.12 constraints'    
+    print 'There will be '+str(len(cliqueslist))+' 4.12 constraints' 
+    outputfile.write('There will be '+str(len(cliqueslist))+' 4.12 constraints\n' )
     return cliqueslist        
     
